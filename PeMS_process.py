@@ -51,11 +51,28 @@ class PeMs_Processor:
         }
 
     def request_url(self, url, params=None):
+        """通用request请求器
+
+        Args:
+            url (_type_): _待爬url_
+            params (_type_, optional): _params_. Defaults to None.
+
+        Returns:
+            _type_: _description_
+        """
         request_response = self.session.get(url, headers=self.headers, params=params)
         return request_response
 
     @staticmethod
     def incident_response_processor(incident_info_response):
+        """特定的incident返回结果解析器
+
+        Args:
+            incident_info_response (_type_): _request返回的结果，包含incident的各项info_
+
+        Returns:
+            _type_: _返回特定年份中所有记录incident数据的url,以日为单位_
+        """
         incident_data_list = incident_info_response.json()["data"]
         daily_file_urls = []
         for month, monthly_info in incident_data_list.items():
@@ -64,6 +81,11 @@ class PeMs_Processor:
         return daily_file_urls
 
     def daily_incident_downloader(self, url_list):
+        """下载写入incident文件
+
+        Args:
+            url_list (_type_): _处理返回的记录Incident的url列表，待下载_
+        """
         for today in url_list:
             incident_file_binary = self.session.get(
                 self.base_url + today, headers=self.headers
@@ -86,18 +108,19 @@ class PeMs_Processor:
                         ) as output_file:
                             output_file.write(decompressed_data)
             os.remove(rf"{self.file_save_path}/today.zip")
-            # time.sleep(1)
+        print(
+            rf"Successfully crawled {self.year} incident data. Path: {self.file_save_path}"
+        )
+        # time.sleep(1)
 
     def crawl_incident(self):
-        """_爬取PeMS特定年份的incident数据_
-
-        Args:
-            year (_type_): 声明incident目标年份数据
-        """
-
+        """_爬取PeMS特定年份的incident数据_"""
+        # 1.获取incident信息 2. 处理返回信息 3. 下载incident文件
+        now = time.time()
         incident_info_response = self.request_url(self.base_url, self.incident_params)
         incident_url_list = self.incident_response_processor(incident_info_response)
         self.daily_incident_downloader(incident_url_list)
+        print(f"total time: {time.time() - now}")
 
 
 t = PeMs_Processor(2017)
