@@ -4,7 +4,8 @@ import os
 import requests
 import time
 from datetime import datetime
-
+import pandas as pd
+import geopandas as gpd
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -122,6 +123,63 @@ class PeMs_Processor:
         self.daily_incident_downloader(incident_url_list)
         print(f"total time: {time.time() - now}")
 
+    @staticmethod
+    def merge_splited_incident_txt(path):
+        daily_report_list = []
+        for _, _, report_names in os.walk(path):
+            for daily_report_name in report_names:
+                if daily_report_name.endswith(".txt"):
+                    daily_report_list.append(daily_report_name)
+        original_path = os.getcwd()
+        os.chdir(path)
+        total_incident_report = pd.DataFrame()
+        for daily_report_file in daily_report_list:
+            daily_file = pd.read_csv(
+                daily_report_file,
+                index_col=0,
+                names=[
+                    "CC Code",
+                    "Incident Number",
+                    "Timestamp",
+                    "Description",
+                    "Location",
+                    "Area",
+                    "Zoom Map",
+                    "TB xy",
+                    "Lat",
+                    "Lon",
+                    "District",
+                    "County FIPS ID",
+                    "City Fips ID",
+                    "Freeway Number",
+                    "Freeway Direction",
+                    "State Postmile",
+                    "Absolute Postmile",
+                    "Severity",
+                    "Duration/min",
+                ],
+            )
+            daily_file["Timestamp"] = pd.to_datetime(daily_file["Timestamp"])
+            daily_file = daily_file.set_index(["Timestamp"])
+            total_incident_report = pd.concat([total_incident_report, daily_file])
+            print(f"Merged {daily_report_file}")
+        os.chdir(original_path)
+        total_incident_report = total_incident_report.sort_index()
+        total_incident_report.to_csv(path + "/" + "total_reports.csv", encoding="utf-8")
+        print("Merged Successfully!")
+        return total_incident_report
+
+    @staticmethod
+    def csv2geojson(path, columns=["Lon", "Lat"]):
+        Lon, Lat = columns
+        geo_csv = pd.read_csv(path + "/total_reports.csv")
+        geo_csv["geometry"] = gpd.points_from_xy(geo_csv[Lon], geo_csv[Lat])
+        geo_trans = gpd.GeoDataFrame(geo_csv, geometry="geometry", crs="epsg:4326")
+        geo_trans.to_file(path + "/" + "incidents.geojson")
+        return geo_trans
+
 
 t = PeMs_Processor(2017)
-t.crawl_incident()
+# t.crawl_incident()
+# t.merge_splited_incident_txt(t.file_save_path)
+t.csv2geojson(r"./incident_2017")
