@@ -8,17 +8,22 @@ import pandas as pd
 import geopandas as gpd
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from cookiesPool import cookies
 
 
-class PeMs_Processor:
-    def __init__(self, year=datetime.now().year) -> None:
+class PeMS_Incident_Processor:
+    def __init__(
+        self,
+        path,
+        year=datetime.now().year,
+    ) -> None:
         # pems提供的数据接口需要登陆访问
         self.year = year
-        self.file_save_path = rf"./incident_{self.year}"
+        self.file_save_path = path
         self.base_url = "https://pems.dot.ca.gov/"
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
-            "Cookie": "nmstat=21419852-1054-bd10-3d60-aba16299e75e; __utmz=267661199.1684982596.2.2.utmcsr=blog.csdn.net|utmccn=(referral)|utmcmd=referral|utmcct=/w771792694/article/details/103075534; _ga_WLDEF7NZZ2=GS1.1.1685079639.3.1.1685080219.0.0.0; _ga_69TD0KNT0F=GS1.1.1685079640.3.1.1685080219.0.0.0; _ga=GA1.2.1557603639.1684395807; _gid=GA1.2.914196084.1685343138; _ga_FE9WWP5YXX=GS1.1.1685343135.1.0.1685343203.0.0.0; PHPSESSID=4e1da9c0d833279228d6d146756bb290; __utma=267661199.1557603639.1684395807.1685408584.1685423841.9; __utmc=267661199; __utmb=267661199.3.10.1685423841",
+            "Cookie": cookies,
             "Host": "pems.dot.ca.gov",
         }
         self.session = requests.Session()
@@ -65,7 +70,7 @@ class PeMs_Processor:
         return request_response
 
     @staticmethod
-    def incident_response_processor(incident_info_response):
+    def response_processor(incident_info_response):
         """特定的incident返回结果解析器
 
         Args:
@@ -81,7 +86,7 @@ class PeMs_Processor:
                 daily_file_urls.append(daily_info["url"])
         return daily_file_urls
 
-    def daily_incident_downloader(self, url_list):
+    def daily_incident_downloader(self, url_list, filter_word="det"):
         """下载写入incident文件
 
         Args:
@@ -98,7 +103,7 @@ class PeMs_Processor:
                 save_file = [
                     filename
                     for filename in _zip_file.namelist()
-                    if "det" not in filename
+                    if filter_word not in filename
                 ][0]
                 with _zip_file.open(save_file, "r") as gz_file:
                     with gzip.open(gz_file, "rb") as inner_file:
@@ -119,7 +124,7 @@ class PeMs_Processor:
         # 1.获取incident信息 2. 处理返回信息 3. 下载incident文件
         now = time.time()
         incident_info_response = self.request_url(self.base_url, self.incident_params)
-        incident_url_list = self.incident_response_processor(incident_info_response)
+        incident_url_list = self.response_processor(incident_info_response)
         self.daily_incident_downloader(incident_url_list)
         print(f"total time: {time.time() - now}")
 
@@ -179,7 +184,10 @@ class PeMs_Processor:
         return geo_trans
 
 
-t = PeMs_Processor(2017)
-# t.crawl_incident()
-# t.merge_splited_incident_txt(t.file_save_path)
-t.csv2geojson(r"./incident_2017")
+if __name__ == "__main__":
+    year = 2017
+    path = rf"./incident_{year}"
+    t = PeMS_Incident_Processor(path, 2017)
+    # t.crawl_incident()
+    # t.merge_splited_incident_txt(t.file_save_path)
+    t.csv2geojson(path)
