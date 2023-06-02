@@ -8,7 +8,7 @@ import pandas as pd
 import geopandas as gpd
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from cookiesPool import cookies
+from configs.cookiesPool import cookies
 
 
 class PeMS_Incident_Processor:
@@ -188,6 +188,6 @@ if __name__ == "__main__":
     year = 2017
     path = rf"./incident_{year}"
     t = PeMS_Incident_Processor(path, 2017)
-    # t.crawl_incident()
-    # t.merge_splited_incident_txt(t.file_save_path)
+    t.crawl_incident()
+    t.merge_splited_incident_txt(t.file_save_path)
     t.csv2geojson(path)

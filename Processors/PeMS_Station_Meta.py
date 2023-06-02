@@ -1,15 +1,11 @@
-import gzip
 import os
-import io
 import requests
 import time
 from datetime import datetime
 import pandas as pd
 import geopandas as gpd
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 from PeMS_flow_process import PeMS_Flow_Processor
-from cookiesPool import cookies
+from configs.cookiesPool import cookies
 import re
 
 
@@ -107,6 +103,6 @@ class PeMS_Station_Meta(PeMS_Flow_Processor):
 
 
 t = PeMS_Station_Meta(r"./station_2017", 4, 2017)
-# t.crawl_station_meta()
+t.crawl_station_meta()
 t.Station_Meta_to_csv(r"./station_2017")
 t.csv2geojson(r"./station_2017")

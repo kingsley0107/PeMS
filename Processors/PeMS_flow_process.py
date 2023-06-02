@@ -4,12 +4,8 @@ import io
 import requests
 import time
 from datetime import datetime
-import pandas as pd
-import geopandas as gpd
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 from PeMS_Incident_process import PeMS_Incident_Processor
-from cookiesPool import cookies
+from configs.cookiesPool import cookies
 import re
 
 
